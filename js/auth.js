@@ -17,7 +17,7 @@ const forms =
 
 
 // ========================================
-// AUTH CHECK
+// CHECK LOGIN
 // ========================================
 
 const savedToken =
@@ -63,63 +63,6 @@ tabBtns.forEach((btn) => {
 
 
 // ========================================
-// API REQUEST
-// ========================================
-
-async function sendRequest(
-    endpoint,
-    data
-) {
-
-    const response =
-        await fetch(
-            `${API_URL}${endpoint}`,
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body:
-                    JSON.stringify(data)
-            }
-        );
-
-
-    const rawText =
-        await response.text();
-
-
-    let result = {};
-
-    try {
-        result =
-            rawText
-                ? JSON.parse(rawText)
-                : {};
-    } catch {
-        result = {
-            error: rawText
-        };
-    }
-
-
-    if (!response.ok) {
-
-        throw new Error(
-            result.error ||
-            `Server returned ${response.status}`
-        );
-    }
-
-
-    return result;
-}
-
-
-// ========================================
 // LOGIN
 // ========================================
 
@@ -136,17 +79,13 @@ if (loginForm) {
 
             const username =
                 document
-                    .getElementById(
-                        "login-username"
-                    )
+                    .getElementById("login-username")
                     .value
                     .trim();
 
             const password =
                 document
-                    .getElementById(
-                        "login-password"
-                    )
+                    .getElementById("login-password")
                     .value;
 
             const errorEl =
@@ -158,26 +97,54 @@ if (loginForm) {
 
             try {
 
-                console.log(
-                    "Ember API:",
-                    API_URL
-                );
-
-                const result =
-                    await sendRequest(
-                        "/api/auth/login",
+                const response =
+                    await fetch(
+                        `${API_URL}/api/auth/login`,
                         {
-                            username,
-                            password
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    username,
+                                    password
+                                })
                         }
                     );
 
+                const text =
+                    await response.text();
+
+                let result = {};
+
+                try {
+                    result =
+                        text
+                            ? JSON.parse(text)
+                            : {};
+                } catch {
+                    result = {
+                        error: text
+                    };
+                }
+
+                if (!response.ok) {
+
+                    errorEl.textContent =
+                        result.error ||
+                        `Server error: ${response.status}`;
+
+                    return;
+                }
 
                 localStorage.setItem(
                     "ember_token",
                     result.token
                 );
-
 
                 localStorage.setItem(
                     "ember_user",
@@ -185,7 +152,6 @@ if (loginForm) {
                         result.user
                     )
                 );
-
 
                 window.location.replace(
                     "app.html"
@@ -200,7 +166,7 @@ if (loginForm) {
 
                 errorEl.textContent =
                     error.message ||
-                    "Login failed.";
+                    "Cannot connect to Ember server.";
             }
         }
     );
@@ -224,25 +190,19 @@ if (signupForm) {
 
             const displayName =
                 document
-                    .getElementById(
-                        "signup-display"
-                    )
+                    .getElementById("signup-display")
                     .value
                     .trim();
 
             const username =
                 document
-                    .getElementById(
-                        "signup-username"
-                    )
+                    .getElementById("signup-username")
                     .value
                     .trim();
 
             const password =
                 document
-                    .getElementById(
-                        "signup-password"
-                    )
+                    .getElementById("signup-password")
                     .value;
 
             const errorEl =
@@ -254,27 +214,55 @@ if (signupForm) {
 
             try {
 
-                console.log(
-                    "Ember API:",
-                    API_URL
-                );
-
-                const result =
-                    await sendRequest(
-                        "/api/auth/signup",
+                const response =
+                    await fetch(
+                        `${API_URL}/api/auth/signup`,
                         {
-                            displayName,
-                            username,
-                            password
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    displayName,
+                                    username,
+                                    password
+                                })
                         }
                     );
 
+                const text =
+                    await response.text();
+
+                let result = {};
+
+                try {
+                    result =
+                        text
+                            ? JSON.parse(text)
+                            : {};
+                } catch {
+                    result = {
+                        error: text
+                    };
+                }
+
+                if (!response.ok) {
+
+                    errorEl.textContent =
+                        result.error ||
+                        `Server error: ${response.status}`;
+
+                    return;
+                }
 
                 localStorage.setItem(
                     "ember_token",
                     result.token
                 );
-
 
                 localStorage.setItem(
                     "ember_user",
@@ -282,7 +270,6 @@ if (signupForm) {
                         result.user
                     )
                 );
-
 
                 window.location.replace(
                     "app.html"
@@ -297,7 +284,7 @@ if (signupForm) {
 
                 errorEl.textContent =
                     error.message ||
-                    "Account creation failed.";
+                    "Cannot connect to Ember server.";
             }
         }
     );
