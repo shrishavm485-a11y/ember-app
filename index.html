@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ember — sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="auth-body">
+  <div class="auth-shell">
+    <section class="auth-hero">
+      <div class="hero-top">
+        <span class="wordmark">Ember</span>
+        <p class="tagline">Conversations that know<br/>when to let go.</p>
+      </div>
+
+      <div class="hero-preview" aria-hidden="true">
+        <div class="preview-bubble in">
+          <p>hey — you free to look at the drafts tonight?</p>
+          <span class="preview-time">9:41</span>
+        </div>
+        <div class="preview-bubble out fuse">
+          <p>yep, sending them now. this one's on a timer btw 🔥</p>
+          <span class="preview-time">9:42 <span class="ink-drop" title="read"></span></span>
+          <svg class="fuse-ring" viewBox="0 0 40 40">
+            <circle cx="20" cy="20" r="17"></circle>
+          </svg>
+        </div>
+      </div>
+
+      <div class="hero-bottom">
+        <p class="hero-note">Local, private, and yours — every account and message here lives only in this browser.</p>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <div class="auth-card">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="login">Sign in</button>
+          <button class="tab-btn" data-tab="signup">Create account</button>
+        </div>
+
+        <form id="login-form" class="auth-form active">
+          <label>Username
+            <input type="text" id="login-username" autocomplete="username" required />
+          </label>
+          <label>Password
+            <input type="password" id="login-password" autocomplete="current-password" required />
+          </label>
+          <p class="form-error" id="login-error"></p>
+          <button type="submit" class="primary-btn">Sign in</button>
+        </form>
+
+        <form id="signup-form" class="auth-form">
+          <label>Display name
+            <input type="text" id="signup-display" required />
+          </label>
+          <label>Username
+            <input type="text" id="signup-username" autocomplete="username" required />
+          </label>
+          <label>Password
+            <input type="password" id="signup-password" autocomplete="new-password" required minlength="4"/>
+          </label>
+          <p class="form-error" id="signup-error"></p>
+          <button type="submit" class="primary-btn">Create account</button>
+        </form>
+
+        <p class="auth-footnote">Tip: create two accounts, then open this page in two browser windows to chat between them live.</p>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

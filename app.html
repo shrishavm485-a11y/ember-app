@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
+
+    <title>Ember — Chat</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/style.css"
+    />
+</head>
+
+<body class="app-body">
+
+    <!-- =========================================
+         APP
+    ========================================== -->
+
+    <div class="app-shell">
+
+        <!-- =====================================
+             LEFT SIDEBAR
+        ====================================== -->
+
+        <aside class="sidebar">
+
+            <!-- User -->
+            <div class="me-card">
+
+                <div
+                    class="avatar me-avatar"
+                    id="me-avatar"
+                >
+                    ?
+                </div>
+
+                <div class="me-info">
+
+                    <strong id="me-name">
+                        Ember
+                    </strong>
+
+                    <span id="me-handle">
+                        @user
+                    </span>
+
+                </div>
+
+                <button
+                    type="button"
+                    id="logout-btn"
+                    class="logout-btn"
+                    title="Log out"
+                >
+                    ↪
+                </button>
+
+            </div>
+
+
+            <!-- Search / Add Contact -->
+            <div class="contact-search">
+
+                <input
+                    type="text"
+                    id="contact-search"
+                    placeholder="Find someone..."
+                    autocomplete="off"
+                />
+
+                <button
+                    type="button"
+                    id="add-contact-btn"
+                    title="Add contact"
+                >
+                    +
+                </button>
+
+            </div>
+
+
+            <p
+                id="rail-hint"
+                class="rail-hint"
+            ></p>
+
+
+            <!-- Contact List -->
+            <div
+                id="contact-list"
+                class="contact-list"
+            >
+            </div>
+
+        </aside>
+
+
+        <!-- =====================================
+             MAIN CHAT AREA
+        ====================================== -->
+
+        <main class="chat-area">
+
+            <!-- Empty state -->
+            <section
+                id="empty-state"
+                class="empty-state"
+            >
+
+                <div class="empty-mark">
+                    🔥
+                </div>
+
+                <h1>
+                    Ember
+                </h1>
+
+                <p>
+                    Choose a conversation<br>
+                    and start talking.
+                </p>
+
+            </section>
+
+
+            <!-- Active conversation -->
+            <section
+                id="conv-active"
+                class="conversation"
+                hidden
+            >
+
+                <!-- =================================
+                     CONVERSATION HEADER
+                ================================== -->
+
+                <header class="conversation-header">
+
+                    <div class="conversation-person">
+
+                        <div
+                            id="conv-avatar"
+                            class="avatar"
+                        >
+                            ?
+                        </div>
+
+                        <div>
+
+                            <h2 id="conv-name">
+                                Conversation
+                            </h2>
+
+                            <span
+                                id="conv-status"
+                                class="conversation-status"
+                            >
+                                offline
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Disappearing messages -->
+                    <div class="conv-controls">
+
+                        <label
+                            class="fuse-toggle"
+                            title="Disappearing messages"
+                        >
+
+                            <input
+                                type="checkbox"
+                                id="disappear-toggle"
+                            />
+
+                            <span class="fuse-icon">
+                                🔥
+                            </span>
+
+                        </label>
+
+
+                        <select
+                            id="disappear-duration"
+                            class="disappear-select"
+                            title="Disappearing message duration"
+                        >
+
+                            <option value="10000">
+                                10 seconds
+                            </option>
+
+                            <option
+                                value="60000"
+                                selected
+                            >
+                                1 minute
+                            </option>
+
+                            <option value="3600000">
+                                1 hour
+                            </option>
+
+                            <option value="86400000">
+                                24 hours
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </header>
+
+
+                <!-- =================================
+                     MESSAGES
+                ================================== -->
+
+                <div
+                    id="messages"
+                    class="messages"
+                >
+                </div>
+
+
+                <!-- =================================
+                     MESSAGE COMPOSER
+                ================================== -->
+
+                <form
+                    id="composer"
+                    class="composer"
+                    autocomplete="off"
+                >
+
+                    <input
+                        type="text"
+                        id="composer-input"
+                        placeholder="Write a message..."
+                        autocomplete="off"
+                        maxlength="5000"
+                    />
+
+                    <button
+                        type="submit"
+                        class="send-btn"
+                        title="Send message"
+                    >
+                        Send
+                    </button>
+
+                </form>
+
+            </section>
+
+        </main>
+
+    </div>
+
+
+    <!-- =========================================
+         SOCKET.IO
+    ========================================== -->
+
+    <script
+        src="https://cdn.socket.io/4.8.1/socket.io.min.js"
+    ></script>
+
+
+    <!-- =========================================
+         EMBER JAVASCRIPT
+    ========================================== -->
+
+    <script src="js/storage.js"></script>
+
+    <script src="js/app.js"></script>
+
+</body>
+</html>
