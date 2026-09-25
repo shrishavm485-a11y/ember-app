@@ -2,7 +2,9 @@
 // EMBER AUTH
 // ========================================
 
-const API_URL = "https://ember-app-1-vo3g.onrender.com";
+// Empty string means:
+// use the same Render server that serves this page.
+const API_URL = "";
 
 
 // ========================================
@@ -99,7 +101,7 @@ if (loginForm) {
 
                 const response =
                     await fetch(
-                        `${API_URL}/api/auth/login`,
+                        "/api/auth/login",
                         {
                             method: "POST",
 
@@ -146,7 +148,10 @@ if (loginForm) {
 
             } catch (error) {
 
-                console.error(error);
+                console.error(
+                    "Login error:",
+                    error
+                );
 
                 errorEl.textContent =
                     "Cannot connect to Ember server.";
@@ -201,7 +206,7 @@ if (signupForm) {
 
                 const response =
                     await fetch(
-                        `${API_URL}/api/auth/signup`,
+                        "/api/auth/signup",
                         {
                             method: "POST",
 
@@ -249,7 +254,10 @@ if (signupForm) {
 
             } catch (error) {
 
-                console.error(error);
+                console.error(
+                    "Signup error:",
+                    error
+                );
 
                 errorEl.textContent =
                     "Cannot connect to Ember server.";
