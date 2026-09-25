@@ -2,7 +2,8 @@
 // EMBER CHAT APP
 // ========================================
 
-const API_URL = "https://ember-app3.onrender.com";
+const API_URL =
+    window.location.origin;
 
 
 // ========================================
@@ -16,8 +17,14 @@ const currentUserRaw =
     localStorage.getItem("ember_user");
 
 if (!token || !currentUserRaw) {
-    window.location.replace("index.html");
-    throw new Error("Not authenticated.");
+
+    window.location.replace(
+        "/index.html"
+    );
+
+    throw new Error(
+        "Not authenticated."
+    );
 }
 
 const currentUser =
@@ -80,7 +87,9 @@ const disappearToggle =
     document.getElementById("disappear-toggle");
 
 const disappearDuration =
-    document.getElementById("disappear-duration");
+    document.getElementById(
+        "disappear-duration"
+    );
 
 
 // ========================================
@@ -88,10 +97,16 @@ const disappearDuration =
 // ========================================
 
 let contacts = [];
+
 let activeContact = null;
+
 let socket = null;
+
 let refreshTimer = null;
-let messageRefreshInProgress = false;
+
+let messageRefreshInProgress =
+    false;
+
 let searchTimer = null;
 
 
@@ -123,26 +138,6 @@ async function apiFetch(
         );
 
 
-    if (response.status === 401) {
-
-        localStorage.removeItem(
-            "ember_token"
-        );
-
-        localStorage.removeItem(
-            "ember_user"
-        );
-
-        window.location.replace(
-            "index.html"
-        );
-
-        throw new Error(
-            "Authentication expired."
-        );
-    }
-
-
     const raw =
         await response.text();
 
@@ -164,6 +159,28 @@ async function apiFetch(
     }
 
 
+    if (
+        response.status === 401
+    ) {
+
+        localStorage.removeItem(
+            "ember_token"
+        );
+
+        localStorage.removeItem(
+            "ember_user"
+        );
+
+        window.location.replace(
+            "/index.html"
+        );
+
+        throw new Error(
+            "Authentication expired."
+        );
+    }
+
+
     if (!response.ok) {
 
         throw new Error(
@@ -178,39 +195,7 @@ async function apiFetch(
 
 
 // ========================================
-// USER UI
-// ========================================
-
-function setupCurrentUser() {
-
-    if (meName) {
-
-        meName.textContent =
-            currentUser.displayName ||
-            currentUser.username;
-    }
-
-
-    if (meHandle) {
-
-        meHandle.textContent =
-            `@${currentUser.username}`;
-    }
-
-
-    if (meAvatar) {
-
-        meAvatar.textContent =
-            getInitial(
-                currentUser.displayName ||
-                currentUser.username
-            );
-    }
-}
-
-
-// ========================================
-// INITIALS
+// USER
 // ========================================
 
 function getInitial(name) {
@@ -219,10 +204,37 @@ function getInitial(name) {
         return "?";
     }
 
+
     return name
         .trim()
         .charAt(0)
         .toUpperCase();
+}
+
+
+function setupCurrentUser() {
+
+    const name =
+        currentUser.displayName ||
+        currentUser.username;
+
+
+    if (meName) {
+        meName.textContent =
+            name;
+    }
+
+
+    if (meHandle) {
+        meHandle.textContent =
+            `@${currentUser.username}`;
+    }
+
+
+    if (meAvatar) {
+        meAvatar.textContent =
+            getInitial(name);
+    }
 }
 
 
@@ -247,14 +259,15 @@ function connectSocket() {
         typeof io === "undefined"
     ) {
 
-        console.warn(
-            "Socket.IO library not found."
+        console.error(
+            "Socket.IO not loaded."
         );
 
         return;
     }
 
 
+    // Same website / same Render service.
     socket =
         io({
             auth: {
@@ -268,7 +281,7 @@ function connectSocket() {
         () => {
 
             console.log(
-                "Ember connected."
+                "Ember Socket.IO connected."
             );
         }
     );
@@ -387,7 +400,7 @@ function connectSocket() {
 
 
 // ========================================
-// LOAD CONTACTS
+// CONTACTS
 // ========================================
 
 async function loadContacts() {
@@ -438,13 +451,16 @@ function renderContacts(
     ) {
 
         const empty =
-            document.createElement("p");
+            document.createElement(
+                "p"
+            );
 
         empty.className =
             "rail-hint";
 
         empty.textContent =
             "No conversations yet.";
+
 
         contactList.appendChild(
             empty
@@ -569,7 +585,7 @@ function renderContacts(
 
 
 // ========================================
-// LIVE USER SEARCH
+// SEARCH
 // ========================================
 
 if (contactSearch) {
@@ -602,9 +618,11 @@ if (contactSearch) {
             searchTimer =
                 setTimeout(
                     () => {
+
                         searchUsers(
                             query
                         );
+
                     },
                     300
                 );
@@ -672,7 +690,7 @@ async function searchUsers(
     } catch (error) {
 
         console.error(
-            "User search error:",
+            "Search error:",
             error
         );
 
@@ -684,7 +702,7 @@ async function searchUsers(
 
 
 // ========================================
-// RENDER SEARCH RESULTS
+// SEARCH RESULTS
 // ========================================
 
 function renderSearchResults(
@@ -802,7 +820,7 @@ function renderSearchResults(
 
 
 // ========================================
-// ADD CONTACT BUTTON
+// ADD CONTACT
 // ========================================
 
 if (addContactBtn) {
@@ -813,10 +831,6 @@ if (addContactBtn) {
     );
 }
 
-
-// ========================================
-// ADD CONTACT
-// ========================================
 
 async function addContact() {
 
@@ -842,7 +856,8 @@ async function addContact() {
             await apiFetch(
                 "/api/contacts",
                 {
-                    method: "POST",
+                    method:
+                        "POST",
 
                     body:
                         JSON.stringify({
@@ -853,8 +868,12 @@ async function addContact() {
 
 
         if (contactSearch) {
-            contactSearch.value = "";
+            contactSearch.value =
+                "";
         }
+
+
+        await loadContacts();
 
 
         showRailHint(
@@ -862,24 +881,19 @@ async function addContact() {
         );
 
 
-        await loadContacts();
-
-
-        const addedUser =
-            result.user;
-
-
         const contact =
             contacts.find(
                 (item) =>
                     Number(item.id) ===
-                    Number(addedUser.id)
+                    Number(
+                        result.user.id
+                    )
             );
 
 
         if (contact) {
 
-            openConversation(
+            await openConversation(
                 contact
             );
         }
@@ -911,7 +925,8 @@ async function addContactByUser(
         await apiFetch(
             "/api/contacts",
             {
-                method: "POST",
+                method:
+                    "POST",
 
                 body:
                     JSON.stringify({
@@ -923,16 +938,17 @@ async function addContactByUser(
 
 
         if (contactSearch) {
-            contactSearch.value = "";
+            contactSearch.value =
+                "";
         }
+
+
+        await loadContacts();
 
 
         showRailHint(
             "Contact added."
         );
-
-
-        await loadContacts();
 
 
         const contact =
@@ -945,7 +961,7 @@ async function addContactByUser(
 
         if (contact) {
 
-            openConversation(
+            await openConversation(
                 contact
             );
         }
@@ -953,7 +969,7 @@ async function addContactByUser(
     } catch (error) {
 
         console.error(
-            "Add search result error:",
+            "Add user error:",
             error
         );
 
@@ -965,20 +981,32 @@ async function addContactByUser(
 
 
 // ========================================
-// RAIL MESSAGE
+// STATUS
 // ========================================
 
 function showRailHint(
     message
 ) {
 
-    if (!railHint) {
-        return;
+    if (railHint) {
+
+        railHint.textContent =
+            message || "";
     }
+}
 
 
-    railHint.textContent =
-        message || "";
+function updateContactStatus(
+    online
+) {
+
+    if (convStatus) {
+
+        convStatus.textContent =
+            online
+                ? "online"
+                : "offline";
+    }
 }
 
 
@@ -1047,26 +1075,6 @@ async function openConversation(
 
 
 // ========================================
-// CONTACT STATUS
-// ========================================
-
-function updateContactStatus(
-    online
-) {
-
-    if (!convStatus) {
-        return;
-    }
-
-
-    convStatus.textContent =
-        online
-            ? "online"
-            : "offline";
-}
-
-
-// ========================================
 // LOAD MESSAGES
 // ========================================
 
@@ -1100,7 +1108,7 @@ async function loadMessages(
     } catch (error) {
 
         console.error(
-            "Load messages error:",
+            "Messages error:",
             error
         );
 
@@ -1132,7 +1140,6 @@ function renderMessages(
         !messages ||
         messages.length === 0
     ) {
-
         return;
     }
 
@@ -1140,14 +1147,10 @@ function renderMessages(
     messages.forEach(
         (message) => {
 
-            const bubble =
+            messagesEl.appendChild(
                 createMessageElement(
                     message
-                );
-
-
-            messagesEl.appendChild(
-                bubble
+                )
             );
         }
     );
@@ -1379,28 +1382,29 @@ function formatTime(
     return date.toLocaleTimeString(
         [],
         {
-            hour: "numeric",
-            minute: "2-digit"
+            hour:
+                "numeric",
+
+            minute:
+                "2-digit"
         }
     );
 }
 
 
 // ========================================
-// DELETE MESSAGE
+// DELETE
 // ========================================
 
 async function deleteMessage(
     messageId
 ) {
 
-    const confirmed =
-        window.confirm(
+    if (
+        !window.confirm(
             "Delete this message?"
-        );
-
-
-    if (!confirmed) {
+        )
+    ) {
         return;
     }
 
@@ -1410,7 +1414,8 @@ async function deleteMessage(
         await apiFetch(
             `/api/messages/${messageId}`,
             {
-                method: "DELETE"
+                method:
+                    "DELETE"
             }
         );
 
@@ -1421,12 +1426,6 @@ async function deleteMessage(
 
     } catch (error) {
 
-        console.error(
-            "Delete message error:",
-            error
-        );
-
-
         alert(
             error.message ||
             "Could not delete message."
@@ -1434,10 +1433,6 @@ async function deleteMessage(
     }
 }
 
-
-// ========================================
-// REMOVE MESSAGE
-// ========================================
 
 function removeMessageFromUI(
     messageId
@@ -1461,7 +1456,7 @@ function removeMessageFromUI(
 
 
 // ========================================
-// SEND MESSAGE
+// SEND
 // ========================================
 
 if (composer) {
@@ -1507,23 +1502,23 @@ if (composer) {
 
             try {
 
-                const message =
-                    await apiFetch(
-                        "/api/messages",
-                        {
-                            method: "POST",
+                await apiFetch(
+                    "/api/messages",
+                    {
+                        method:
+                            "POST",
 
-                            body:
-                                JSON.stringify({
-                                    receiverUsername:
-                                        activeContact.username,
+                        body:
+                            JSON.stringify({
+                                receiverUsername:
+                                    activeContact.username,
 
-                                    text,
+                                text,
 
-                                    expiresIn
-                                })
-                        }
-                    );
+                                expiresIn
+                            })
+                    }
+                );
 
 
                 if (composerInput) {
@@ -1537,19 +1532,7 @@ if (composer) {
                     activeContact.username
                 );
 
-
-                console.log(
-                    "Message sent:",
-                    message
-                );
-
             } catch (error) {
-
-                console.error(
-                    "Send message error:",
-                    error
-                );
-
 
                 alert(
                     error.message ||
@@ -1562,7 +1545,7 @@ if (composer) {
 
 
 // ========================================
-// MESSAGE REFRESH
+// AUTO REFRESH
 // ========================================
 
 function startMessageRefresh() {
@@ -1629,7 +1612,7 @@ if (logoutBtn) {
 
 
             window.location.replace(
-                "index.html"
+                "/index.html"
             );
         }
     );

@@ -16,12 +16,13 @@ const pool = require("./db");
 
 
 // ========================================
-// APP SETUP
+// APP
 // ========================================
 
 const app = express();
 
-const server = http.createServer(app);
+const server =
+    http.createServer(app);
 
 const PORT =
     Number(process.env.PORT) || 3000;
@@ -32,56 +33,13 @@ const JWT_SECRET =
 
 
 // ========================================
-// MIDDLEWARE
+// CORS
 // ========================================
 
 app.use(
     cors({
-        origin: (origin, callback) => {
-
-            // Allow requests with no origin
-            // such as Postman/server requests.
-            if (!origin) {
-                return callback(null, true);
-            }
-
-            // Allow local development.
-            if (
-                origin.startsWith(
-                    "http://localhost:"
-                ) ||
-                origin.startsWith(
-                    "http://127.0.0.1:"
-                )
-            ) {
-                return callback(null, true);
-            }
-
-            // Allow your deployed Render site.
-            if (
-                origin.endsWith(
-                    ".onrender.com"
-                )
-            ) {
-                return callback(null, true);
-            }
-
-            // Optional custom frontend URL.
-            if (
-                process.env.FRONTEND_URL &&
-                origin ===
-                    process.env.FRONTEND_URL.replace(
-                        /\/$/,
-                        ""
-                    )
-            ) {
-                return callback(null, true);
-            }
-
-            return callback(
-                new Error("CORS not allowed.")
-            );
-        }
+        origin: true,
+        credentials: true
     })
 );
 
@@ -111,12 +69,27 @@ const io =
 
 
 // ========================================
-// STATIC FRONTEND
+// FRONTEND FILES
 // ========================================
 
-// Home page
+// Main website
 app.get(
     "/",
+    (req, res) => {
+        res.sendFile(
+            path.join(
+                __dirname,
+                "index.html"
+            )
+        );
+    }
+);
+
+
+// Important:
+// logout uses index.html
+app.get(
+    "/index.html",
     (req, res) => {
         res.sendFile(
             path.join(
@@ -142,7 +115,7 @@ app.get(
 );
 
 
-// CSS files
+// CSS
 app.use(
     "/css",
     express.static(
@@ -154,7 +127,7 @@ app.use(
 );
 
 
-// JavaScript files
+// JavaScript
 app.use(
     "/js",
     express.static(
@@ -167,7 +140,7 @@ app.use(
 
 
 // ========================================
-// HEALTH CHECK
+// HEALTH
 // ========================================
 
 app.get(
@@ -211,6 +184,7 @@ function authenticateToken(
     const authorization =
         req.headers.authorization;
 
+
     if (
         !authorization ||
         !authorization.startsWith(
@@ -224,29 +198,27 @@ function authenticateToken(
         });
     }
 
+
     const token =
         authorization.substring(7);
 
+
     try {
 
-        const decoded =
+        req.user =
             jwt.verify(
                 token,
                 JWT_SECRET
             );
 
-        req.user =
-            decoded;
-
         next();
 
-    } catch (error) {
+    } catch {
 
         return res.status(401).json({
             error:
                 "Invalid or expired token."
         });
-
     }
 }
 
@@ -280,7 +252,6 @@ app.post(
 
 
             if (!displayName) {
-
                 return res.status(400).json({
                     error:
                         "Display name is required."
@@ -289,7 +260,6 @@ app.post(
 
 
             if (!username) {
-
                 return res.status(400).json({
                     error:
                         "Username is required."
@@ -390,7 +360,8 @@ app.post(
                 token,
 
                 user: {
-                    id: user.id,
+                    id:
+                        user.id,
 
                     username:
                         user.username,
@@ -486,14 +457,14 @@ app.post(
                 result.rows[0];
 
 
-            const validPassword =
+            const valid =
                 await bcrypt.compare(
                     password,
                     user.password_hash
                 );
 
 
-            if (!validPassword) {
+            if (!valid) {
 
                 return res.status(401).json({
                     error:
@@ -511,7 +482,8 @@ app.post(
                 token,
 
                 user: {
-                    id: user.id,
+                    id:
+                        user.id,
 
                     username:
                         user.username,
@@ -542,7 +514,7 @@ app.post(
 
 
 // ========================================
-// USER SEARCH
+// SEARCH USERS
 // ========================================
 
 app.get(
@@ -577,8 +549,7 @@ app.get(
                     WHERE
                         (
                             username ILIKE $1
-                            OR
-                            display_name ILIKE $1
+                            OR display_name ILIKE $1
                         )
                         AND id <> $2
                     ORDER BY username
@@ -612,7 +583,7 @@ app.get(
         } catch (error) {
 
             console.error(
-                "User search error:",
+                "Search error:",
                 error
             );
 
@@ -677,7 +648,7 @@ app.get(
         } catch (error) {
 
             console.error(
-                "Load contacts error:",
+                "Contacts error:",
                 error
             );
 
@@ -756,7 +727,6 @@ app.post(
             }
 
 
-            // Add contact for current user.
             await pool.query(
                 `
                 INSERT INTO contacts
@@ -783,7 +753,6 @@ app.post(
             );
 
 
-            // Add current user for the contact too.
             await pool.query(
                 `
                 INSERT INTO contacts
@@ -845,7 +814,7 @@ app.post(
 
 
 // ========================================
-// USER HELPERS
+// FIND USER
 // ========================================
 
 async function findUserByUsername(
@@ -870,10 +839,8 @@ async function findUserByUsername(
             ]
         );
 
-    return (
-        result.rows[0] ||
-        null
-    );
+
+    return result.rows[0] || null;
 }
 
 
@@ -911,7 +878,6 @@ app.get(
             }
 
 
-            // Delete expired messages first.
             await pool.query(
                 `
                 DELETE FROM messages
@@ -954,8 +920,7 @@ app.get(
                 );
 
 
-            // Messages received by current user.
-            const incomingMessages =
+            const incoming =
                 result.rows.filter(
                     (message) =>
                         Number(
@@ -967,14 +932,12 @@ app.get(
                 );
 
 
-            // Mark incoming messages as
-            // delivered + read.
             if (
-                incomingMessages.length > 0
+                incoming.length > 0
             ) {
 
-                const incomingIds =
-                    incomingMessages.map(
+                const ids =
+                    incoming.map(
                         (message) =>
                             message.id
                     );
@@ -989,14 +952,13 @@ app.get(
                     WHERE
                         id = ANY($1::int[])
                     `,
-                    [incomingIds]
+                    [ids]
                 );
 
 
-                // Notify the senders.
                 for (
                     const message
-                    of incomingMessages
+                    of incoming
                 ) {
 
                     io.to(
@@ -1023,7 +985,6 @@ app.get(
             }
 
 
-            // Get updated values.
             const updated =
                 await pool.query(
                     `
@@ -1162,10 +1123,6 @@ app.post(
             }
 
 
-            // =================================
-            // DISAPPEARING MESSAGE TIMER
-            // =================================
-
             let expiresAt = null;
 
 
@@ -1176,13 +1133,13 @@ app.post(
                 expiresIn > 0
             ) {
 
-                // Maximum 7 days.
                 const maxExpiry =
                     7 *
                     24 *
                     60 *
                     60 *
                     1000;
+
 
                 const safeExpiry =
                     Math.min(
@@ -1199,10 +1156,6 @@ app.post(
             }
 
 
-            // =================================
-            // DELIVERY STATUS
-            // =================================
-
             const receiverOnline =
                 onlineUsers.has(
                     Number(
@@ -1210,10 +1163,6 @@ app.post(
                     )
                 );
 
-
-            // =================================
-            // INSERT MESSAGE
-            // =================================
 
             const result =
                 await pool.query(
@@ -1258,7 +1207,6 @@ app.post(
                 result.rows[0];
 
 
-            // Send to receiver.
             io.to(
                 `user:${receiver.id}`
             ).emit(
@@ -1267,7 +1215,6 @@ app.post(
             );
 
 
-            // Send to sender.
             io.to(
                 `user:${req.user.id}`
             ).emit(
@@ -1276,8 +1223,6 @@ app.post(
             );
 
 
-            // Tell sender that the message
-            // was delivered if receiver is online.
             if (receiverOnline) {
 
                 io.to(
@@ -1313,7 +1258,7 @@ app.post(
 
 
 // ========================================
-// MARK MESSAGE READ
+// MARK READ
 // ========================================
 
 app.patch(
@@ -1354,8 +1299,7 @@ app.patch(
                         AND receiver_id = $2
                     RETURNING
                         id,
-                        sender_id,
-                        receiver_id
+                        sender_id
                     `,
                     [
                         messageId,
@@ -1409,7 +1353,7 @@ app.patch(
         } catch (error) {
 
             console.error(
-                "Mark read error:",
+                "Read error:",
                 error
             );
 
@@ -1482,28 +1426,28 @@ app.delete(
             }
 
 
-            const deleted =
+            const message =
                 result.rows[0];
 
 
             io.to(
-                `user:${deleted.receiver_id}`
+                `user:${message.sender_id}`
             ).emit(
                 "message_deleted",
                 {
                     messageId:
-                        deleted.id
+                        message.id
                 }
             );
 
 
             io.to(
-                `user:${deleted.sender_id}`
+                `user:${message.receiver_id}`
             ).emit(
                 "message_deleted",
                 {
                     messageId:
-                        deleted.id
+                        message.id
                 }
             );
 
@@ -1511,15 +1455,14 @@ app.delete(
             res.json({
                 message:
                     "Message deleted.",
-
                 messageId:
-                    deleted.id
+                    message.id
             });
 
         } catch (error) {
 
             console.error(
-                "Delete message error:",
+                "Delete error:",
                 error
             );
 
@@ -1555,19 +1498,16 @@ io.use(
             }
 
 
-            const user =
+            socket.user =
                 jwt.verify(
                     token,
                     JWT_SECRET
                 );
 
 
-            socket.user =
-                user;
-
             next();
 
-        } catch (error) {
+        } catch {
 
             next(
                 new Error(
@@ -1604,12 +1544,6 @@ io.on(
         );
 
 
-        console.log(
-            `User ${userId} connected.`
-        );
-
-
-        // Tell everyone this user is online.
         io.emit(
             "presence_changed",
             {
@@ -1618,10 +1552,6 @@ io.on(
             }
         );
 
-
-        // ====================================
-        // MARK READ THROUGH SOCKET
-        // ====================================
 
         socket.on(
             "mark_message_read",
@@ -1636,9 +1566,7 @@ io.on(
 
 
                     if (
-                        !Number.isInteger(
-                            id
-                        )
+                        !Number.isInteger(id)
                     ) {
                         return;
                     }
@@ -1656,8 +1584,7 @@ io.on(
                                 AND receiver_id = $2
                             RETURNING
                                 id,
-                                sender_id,
-                                receiver_id
+                                sender_id
                             `,
                             [
                                 id,
@@ -1709,16 +1636,10 @@ io.on(
         );
 
 
-        // ====================================
-        // DISCONNECT
-        // ====================================
-
         socket.on(
             "disconnect",
             () => {
 
-                // Only remove presence if this
-                // is still the active socket.
                 if (
                     onlineUsers.get(userId) ===
                     socket.id
@@ -1737,11 +1658,6 @@ io.on(
                         }
                     );
                 }
-
-
-                console.log(
-                    `User ${userId} disconnected.`
-                );
             }
         );
     }
@@ -1749,7 +1665,7 @@ io.on(
 
 
 // ========================================
-// EXPIRED MESSAGE CLEANUP
+// EXPIRED MESSAGES
 // ========================================
 
 async function cleanupExpiredMessages() {
@@ -1798,27 +1714,16 @@ async function cleanupExpiredMessages() {
             );
         }
 
-
-        if (
-            result.rows.length > 0
-        ) {
-
-            console.log(
-                `Deleted ${result.rows.length} expired message(s).`
-            );
-        }
-
     } catch (error) {
 
         console.error(
-            "Expired message cleanup error:",
+            "Expired cleanup error:",
             error
         );
     }
 }
 
 
-// Run every 10 seconds.
 setInterval(
     cleanupExpiredMessages,
     10000
@@ -1826,7 +1731,7 @@ setInterval(
 
 
 // ========================================
-// DATABASE SETUP
+// DATABASE
 // ========================================
 
 async function ensureDatabase() {
@@ -1846,7 +1751,7 @@ async function ensureDatabase() {
 
 
 // ========================================
-// START SERVER
+// START
 // ========================================
 
 async function startServer() {
@@ -1871,7 +1776,7 @@ async function startServer() {
     } catch (error) {
 
         console.error(
-            "Failed to start Ember:",
+            "Failed to start server:",
             error
         );
 
