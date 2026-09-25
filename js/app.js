@@ -1,8 +1,9 @@
 // ========================================
-// EMBER APP
+// EMBER CHAT APP
 // ========================================
 
-const API_URL = "https://ember-app-1-vo3g.onrender.com";
+const API_URL =
+    window.location.origin;
 
 
 // ========================================
@@ -15,14 +16,10 @@ const token =
 const currentUserRaw =
     localStorage.getItem("ember_user");
 
-
 if (!token || !currentUserRaw) {
-
     window.location.replace("index.html");
-
     throw new Error("Not authenticated.");
 }
-
 
 const currentUser =
     JSON.parse(currentUserRaw);
@@ -92,18 +89,15 @@ const disappearDuration =
 // ========================================
 
 let contacts = [];
-
 let activeContact = null;
-
 let socket = null;
-
 let refreshTimer = null;
-
 let messageRefreshInProgress = false;
+let searchTimer = null;
 
 
 // ========================================
-// API HELPER
+// API
 // ========================================
 
 async function apiFetch(
@@ -113,8 +107,10 @@ async function apiFetch(
 
     const headers = {
         ...(options.headers || {}),
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
+        "Authorization":
+            `Bearer ${token}`,
+        "Content-Type":
+            "application/json"
     };
 
 
@@ -128,9 +124,7 @@ async function apiFetch(
         );
 
 
-    if (
-        response.status === 401
-    ) {
+    if (response.status === 401) {
 
         localStorage.removeItem(
             "ember_token"
@@ -150,24 +144,32 @@ async function apiFetch(
     }
 
 
-    let data = null;
+    const raw =
+        await response.text();
+
+
+    let data = {};
 
     try {
 
         data =
-            await response.json();
+            raw
+                ? JSON.parse(raw)
+                : {};
 
     } catch {
 
-        data = null;
+        data = {
+            error: raw
+        };
     }
 
 
     if (!response.ok) {
 
         throw new Error(
-            data?.error ||
-            "Request failed."
+            data.error ||
+            `Server error: ${response.status}`
         );
     }
 
@@ -177,7 +179,7 @@ async function apiFetch(
 
 
 // ========================================
-// INITIAL USER UI
+// USER UI
 // ========================================
 
 function setupCurrentUser() {
@@ -209,17 +211,6 @@ function setupCurrentUser() {
 
 
 // ========================================
-// INITIAL
-// ========================================
-
-setupCurrentUser();
-
-connectSocket();
-
-loadContacts();
-
-
-// ========================================
 // INITIALS
 // ========================================
 
@@ -234,6 +225,17 @@ function getInitial(name) {
         .charAt(0)
         .toUpperCase();
 }
+
+
+// ========================================
+// START
+// ========================================
+
+setupCurrentUser();
+
+connectSocket();
+
+loadContacts();
 
 
 // ========================================
@@ -255,14 +257,11 @@ function connectSocket() {
 
 
     socket =
-        io(
-            API_URL,
-            {
-                auth: {
-                    token
-                }
+        io({
+            auth: {
+                token
             }
-        );
+        });
 
 
     socket.on(
@@ -281,39 +280,33 @@ function connectSocket() {
         (error) => {
 
             console.error(
-                "Socket connection error:",
+                "Socket error:",
                 error.message
             );
         }
     );
 
 
-    // ========================================
-    // NEW MESSAGE
-    // ========================================
-
     socket.on(
         "new_message",
         async (message) => {
 
-            console.log(
-                "New message:",
-                message
-            );
-
-
-            // If the message belongs to the
-            // currently open conversation,
-            // reload immediately.
-
             if (
                 activeContact &&
                 (
-                    message.sender_id ===
-                    activeContact.id
+                    Number(
+                        message.sender_id
+                    ) ===
+                    Number(
+                        activeContact.id
+                    )
                     ||
-                    message.receiver_id ===
-                    activeContact.id
+                    Number(
+                        message.receiver_id
+                    ) ===
+                    Number(
+                        activeContact.id
+                    )
                 )
             ) {
 
@@ -323,26 +316,14 @@ function connectSocket() {
             }
 
 
-            // Refresh contacts too.
-
-            loadContacts();
+            await loadContacts();
         }
     );
 
-
-    // ========================================
-    // MESSAGE DELIVERED
-    // ========================================
 
     socket.on(
         "message_delivered",
-        async (data) => {
-
-            console.log(
-                "Message delivered:",
-                data.messageId
-            );
-
+        async () => {
 
             if (activeContact) {
 
@@ -353,20 +334,10 @@ function connectSocket() {
         }
     );
 
-
-    // ========================================
-    // MESSAGE READ
-    // ========================================
 
     socket.on(
         "message_read",
-        async (data) => {
-
-            console.log(
-                "Message read:",
-                data.messageId
-            );
-
+        async () => {
 
             if (activeContact) {
 
@@ -377,30 +348,16 @@ function connectSocket() {
         }
     );
 
-
-    // ========================================
-    // MESSAGE DELETED
-    // ========================================
 
     socket.on(
         "message_deleted",
         async (data) => {
-
-            console.log(
-                "Message deleted:",
-                data.messageId
-            );
-
-
-            // Remove immediately from screen
 
             removeMessageFromUI(
                 data.messageId
             );
 
 
-            // Reload to keep everything synced
-
             if (activeContact) {
 
                 await loadMessages(
@@ -410,10 +367,6 @@ function connectSocket() {
         }
     );
 
-
-    // ========================================
-    // PRESENCE
-    // ========================================
 
     socket.on(
         "presence_changed",
@@ -435,7 +388,7 @@ function connectSocket() {
 
 
 // ========================================
-// CONTACTS
+// LOAD CONTACTS
 // ========================================
 
 async function loadContacts() {
@@ -456,6 +409,10 @@ async function loadContacts() {
             "Load contacts error:",
             error
         );
+
+        showRailHint(
+            error.message
+        );
     }
 }
 
@@ -464,7 +421,9 @@ async function loadContacts() {
 // RENDER CONTACTS
 // ========================================
 
-function renderContacts() {
+function renderContacts(
+    list = contacts
+) {
 
     if (!contactList) {
         return;
@@ -475,14 +434,12 @@ function renderContacts() {
 
 
     if (
-        !contacts ||
-        contacts.length === 0
+        !list ||
+        list.length === 0
     ) {
 
         const empty =
-            document.createElement(
-                "p"
-            );
+            document.createElement("p");
 
         empty.className =
             "rail-hint";
@@ -498,7 +455,7 @@ function renderContacts() {
     }
 
 
-    contacts.forEach(
+    list.forEach(
         (contact) => {
 
             const button =
@@ -507,14 +464,17 @@ function renderContacts() {
                 );
 
 
+            button.type =
+                "button";
+
             button.className =
                 "contact-item";
 
 
             if (
                 activeContact &&
-                activeContact.id ===
-                contact.id
+                Number(activeContact.id) ===
+                Number(contact.id)
             ) {
 
                 button.classList.add(
@@ -530,7 +490,6 @@ function renderContacts() {
 
             avatar.className =
                 "avatar";
-
 
             avatar.textContent =
                 getInitial(
@@ -556,7 +515,6 @@ function renderContacts() {
             name.className =
                 "contact-name";
 
-
             name.textContent =
                 contact.displayName ||
                 contact.username;
@@ -570,17 +528,26 @@ function renderContacts() {
             handle.className =
                 "contact-handle";
 
-
             handle.textContent =
                 `@${contact.username}`;
 
 
-            info.appendChild(name);
-            info.appendChild(handle);
+            info.appendChild(
+                name
+            );
+
+            info.appendChild(
+                handle
+            );
 
 
-            button.appendChild(avatar);
-            button.appendChild(info);
+            button.appendChild(
+                avatar
+            );
+
+            button.appendChild(
+                info
+            );
 
 
             button.addEventListener(
@@ -603,19 +570,48 @@ function renderContacts() {
 
 
 // ========================================
-// SEARCH / ADD CONTACT
+// LIVE USER SEARCH
 // ========================================
 
-if (addContactBtn) {
-
-    addContactBtn.addEventListener(
-        "click",
-        addContact
-    );
-}
-
-
 if (contactSearch) {
+
+    contactSearch.addEventListener(
+        "input",
+        () => {
+
+            const query =
+                contactSearch.value
+                    .trim()
+                    .toLowerCase();
+
+
+            clearTimeout(
+                searchTimer
+            );
+
+
+            if (!query) {
+
+                renderContacts();
+
+                showRailHint("");
+
+                return;
+            }
+
+
+            searchTimer =
+                setTimeout(
+                    () => {
+                        searchUsers(
+                            query
+                        );
+                    },
+                    300
+                );
+        }
+    );
+
 
     contactSearch.addEventListener(
         "keydown",
@@ -634,12 +630,201 @@ if (contactSearch) {
 }
 
 
+// ========================================
+// SEARCH USERS
+// ========================================
+
+async function searchUsers(
+    query
+) {
+
+    try {
+
+        const users =
+            await apiFetch(
+                `/api/users/search?q=${encodeURIComponent(query)}`
+            );
+
+
+        if (
+            !users ||
+            users.length === 0
+        ) {
+
+            renderContacts([]);
+
+            showRailHint(
+                "No user found."
+            );
+
+            return;
+        }
+
+
+        showRailHint(
+            "Click a user to add them."
+        );
+
+
+        renderSearchResults(
+            users
+        );
+
+    } catch (error) {
+
+        console.error(
+            "User search error:",
+            error
+        );
+
+        showRailHint(
+            error.message
+        );
+    }
+}
+
+
+// ========================================
+// RENDER SEARCH RESULTS
+// ========================================
+
+function renderSearchResults(
+    users
+) {
+
+    if (!contactList) {
+        return;
+    }
+
+
+    contactList.innerHTML = "";
+
+
+    users.forEach(
+        (user) => {
+
+            const button =
+                document.createElement(
+                    "button"
+                );
+
+
+            button.type =
+                "button";
+
+            button.className =
+                "contact-item";
+
+
+            const avatar =
+                document.createElement(
+                    "span"
+                );
+
+            avatar.className =
+                "avatar";
+
+            avatar.textContent =
+                getInitial(
+                    user.displayName ||
+                    user.username
+                );
+
+
+            const info =
+                document.createElement(
+                    "span"
+                );
+
+            info.className =
+                "contact-info";
+
+
+            const name =
+                document.createElement(
+                    "span"
+                );
+
+            name.className =
+                "contact-name";
+
+            name.textContent =
+                user.displayName ||
+                user.username;
+
+
+            const handle =
+                document.createElement(
+                    "span"
+                );
+
+            handle.className =
+                "contact-handle";
+
+            handle.textContent =
+                `@${user.username}`;
+
+
+            info.appendChild(
+                name
+            );
+
+            info.appendChild(
+                handle
+            );
+
+
+            button.appendChild(
+                avatar
+            );
+
+            button.appendChild(
+                info
+            );
+
+
+            button.addEventListener(
+                "click",
+                async () => {
+
+                    await addContactByUser(
+                        user
+                    );
+                }
+            );
+
+
+            contactList.appendChild(
+                button
+            );
+        }
+    );
+}
+
+
+// ========================================
+// ADD CONTACT BUTTON
+// ========================================
+
+if (addContactBtn) {
+
+    addContactBtn.addEventListener(
+        "click",
+        addContact
+    );
+}
+
+
+// ========================================
+// ADD CONTACT
+// ========================================
+
 async function addContact() {
 
     const username =
         contactSearch?.value
-        .trim()
-        .toLowerCase();
+            .trim()
+            .toLowerCase();
 
 
     if (!username) {
@@ -660,15 +845,15 @@ async function addContact() {
                 {
                     method: "POST",
 
-                    body: JSON.stringify({
-                        username
-                    })
+                    body:
+                        JSON.stringify({
+                            username
+                        })
                 }
             );
 
 
         if (contactSearch) {
-
             contactSearch.value = "";
         }
 
@@ -688,8 +873,8 @@ async function addContact() {
         const contact =
             contacts.find(
                 (item) =>
-                    item.id ===
-                    addedUser.id
+                    Number(item.id) ===
+                    Number(addedUser.id)
             );
 
 
@@ -702,6 +887,11 @@ async function addContact() {
 
     } catch (error) {
 
+        console.error(
+            "Add contact error:",
+            error
+        );
+
         showRailHint(
             error.message
         );
@@ -710,10 +900,78 @@ async function addContact() {
 
 
 // ========================================
-// RAIL HINT
+// ADD SEARCH RESULT
 // ========================================
 
-function showRailHint(message) {
+async function addContactByUser(
+    user
+) {
+
+    try {
+
+        await apiFetch(
+            "/api/contacts",
+            {
+                method: "POST",
+
+                body:
+                    JSON.stringify({
+                        username:
+                            user.username
+                    })
+            }
+        );
+
+
+        if (contactSearch) {
+            contactSearch.value = "";
+        }
+
+
+        showRailHint(
+            "Contact added."
+        );
+
+
+        await loadContacts();
+
+
+        const contact =
+            contacts.find(
+                (item) =>
+                    Number(item.id) ===
+                    Number(user.id)
+            );
+
+
+        if (contact) {
+
+            openConversation(
+                contact
+            );
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Add search result error:",
+            error
+        );
+
+        showRailHint(
+            error.message
+        );
+    }
+}
+
+
+// ========================================
+// RAIL MESSAGE
+// ========================================
+
+function showRailHint(
+    message
+) {
 
     if (!railHint) {
         return;
@@ -721,21 +979,7 @@ function showRailHint(message) {
 
 
     railHint.textContent =
-        message;
-
-
-    setTimeout(
-        () => {
-
-            if (railHint) {
-
-                railHint.textContent =
-                    "";
-            }
-
-        },
-        3000
-    );
+        message || "";
 }
 
 
@@ -752,14 +996,12 @@ async function openConversation(
 
 
     if (emptyState) {
-
         emptyState.hidden =
             true;
     }
 
 
     if (convActive) {
-
         convActive.hidden =
             false;
     }
@@ -783,7 +1025,10 @@ async function openConversation(
     }
 
 
-    updateContactStatus(false);
+    updateContactStatus(
+        false
+    );
+
 
     renderContacts();
 
@@ -797,7 +1042,6 @@ async function openConversation(
 
 
     if (composerInput) {
-
         composerInput.focus();
     }
 }
@@ -834,7 +1078,6 @@ async function loadMessages(
     if (
         messageRefreshInProgress
     ) {
-
         return;
     }
 
@@ -917,7 +1160,7 @@ function renderMessages(
 
 
 // ========================================
-// CREATE MESSAGE ELEMENT
+// MESSAGE ELEMENT
 // ========================================
 
 function createMessageElement(
@@ -931,8 +1174,12 @@ function createMessageElement(
 
 
     const outgoing =
-        Number(message.sender_id) ===
-        Number(currentUser.id);
+        Number(
+            message.sender_id
+        ) ===
+        Number(
+            currentUser.id
+        );
 
 
     wrapper.className =
@@ -945,33 +1192,22 @@ function createMessageElement(
         message.id;
 
 
-    // ========================================
-    // BUBBLE
-    // ========================================
-
     const bubble =
         document.createElement(
             "div"
         );
 
-
     bubble.className =
         "message-bubble";
 
-
-    // ========================================
-    // TEXT
-    // ========================================
 
     const text =
         document.createElement(
             "p"
         );
 
-
     text.className =
         "message-text";
-
 
     text.textContent =
         message.text;
@@ -982,15 +1218,10 @@ function createMessageElement(
     );
 
 
-    // ========================================
-    // META
-    // ========================================
-
     const meta =
         document.createElement(
             "div"
         );
-
 
     meta.className =
         "message-meta";
@@ -1001,10 +1232,8 @@ function createMessageElement(
             "span"
         );
 
-
     time.className =
         "message-time";
-
 
     time.textContent =
         formatTime(
@@ -1017,17 +1246,12 @@ function createMessageElement(
     );
 
 
-    // ========================================
-    // STATUS
-    // ========================================
-
     if (outgoing) {
 
         const status =
             document.createElement(
                 "span"
             );
-
 
         status.className =
             "message-status";
@@ -1038,6 +1262,9 @@ function createMessageElement(
             status.textContent =
                 "✓✓";
 
+            status.title =
+                "Read";
+
         } else if (
             message.delivered
         ) {
@@ -1045,19 +1272,17 @@ function createMessageElement(
             status.textContent =
                 "✓✓";
 
+            status.title =
+                "Delivered";
+
         } else {
 
             status.textContent =
                 "✓";
+
+            status.title =
+                "Sent";
         }
-
-
-        status.title =
-            message.read
-                ? "Read"
-                : message.delivered
-                    ? "Delivered"
-                    : "Sent";
 
 
         meta.appendChild(
@@ -1071,10 +1296,6 @@ function createMessageElement(
     );
 
 
-    // ========================================
-    // DELETE BUTTON
-    // ========================================
-
     if (outgoing) {
 
         const deleteBtn =
@@ -1083,17 +1304,14 @@ function createMessageElement(
             );
 
 
-        deleteBtn.className =
-            "delete-message-btn";
-
-
         deleteBtn.type =
             "button";
 
+        deleteBtn.className =
+            "delete-message-btn";
 
         deleteBtn.textContent =
             "🗑️";
-
 
         deleteBtn.title =
             "Delete message";
@@ -1116,7 +1334,6 @@ function createMessageElement(
             bubble
         );
 
-
         wrapper.appendChild(
             deleteBtn
         );
@@ -1134,7 +1351,7 @@ function createMessageElement(
 
 
 // ========================================
-// FORMAT TIME
+// TIME
 // ========================================
 
 function formatTime(
@@ -1220,7 +1437,7 @@ async function deleteMessage(
 
 
 // ========================================
-// REMOVE MESSAGE FROM UI
+// REMOVE MESSAGE
 // ========================================
 
 function removeMessageFromUI(
@@ -1232,15 +1449,14 @@ function removeMessageFromUI(
     }
 
 
-    const message =
+    const element =
         messagesEl.querySelector(
             `[data-message-id="${messageId}"]`
         );
 
 
-    if (message) {
-
-        message.remove();
+    if (element) {
+        element.remove();
     }
 }
 
@@ -1259,18 +1475,16 @@ if (composer) {
 
 
             if (!activeContact) {
-
                 return;
             }
 
 
             const text =
                 composerInput?.value
-                .trim();
+                    .trim();
 
 
             if (!text) {
-
                 return;
             }
 
@@ -1278,10 +1492,6 @@ if (composer) {
             let expiresIn =
                 null;
 
-
-            // ========================================
-            // DISAPPEARING MESSAGE
-            // ========================================
 
             if (
                 disappearToggle &&
@@ -1304,19 +1514,18 @@ if (composer) {
                         {
                             method: "POST",
 
-                            body: JSON.stringify({
-                                receiverUsername:
-                                    activeContact.username,
+                            body:
+                                JSON.stringify({
+                                    receiverUsername:
+                                        activeContact.username,
 
-                                text,
+                                    text,
 
-                                expiresIn
-                            })
+                                    expiresIn
+                                })
                         }
                     );
 
-
-                // Clear input
 
                 if (composerInput) {
 
@@ -1324,8 +1533,6 @@ if (composer) {
                         "";
                 }
 
-
-                // Immediately reload
 
                 await loadMessages(
                     activeContact.username
@@ -1356,7 +1563,7 @@ if (composer) {
 
 
 // ========================================
-// MESSAGE REFRESH FALLBACK
+// MESSAGE REFRESH
 // ========================================
 
 function startMessageRefresh() {
@@ -1368,9 +1575,7 @@ function startMessageRefresh() {
         setInterval(
             async () => {
 
-                if (
-                    activeContact
-                ) {
+                if (activeContact) {
 
                     await loadMessages(
                         activeContact.username
@@ -1411,7 +1616,6 @@ if (logoutBtn) {
 
 
             if (socket) {
-
                 socket.disconnect();
             }
 
@@ -1443,8 +1647,8 @@ window.addEventListener(
 
         stopMessageRefresh();
 
-        if (socket) {
 
+        if (socket) {
             socket.disconnect();
         }
     }
