@@ -2,8 +2,7 @@
 // EMBER CHAT APP
 // ========================================
 
-const API_URL =
-    window.location.origin;
+const API_URL = "https://ember-app3.onrender.com";
 
 
 // ========================================
